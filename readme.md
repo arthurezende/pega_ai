@@ -4,16 +4,16 @@
 
 **Pega Aí** é uma plataforma que conecta estabelecimentos comerciais com excedente de produção diária a consumidores interessados em adquirir alimentos de qualidade por preços reduzidos, combatendo o desperdício e promovendo consumo consciente.
 
-### 🎯 Objetivos
+### Objetivos
 
-- ✅ Reduzir desperdício de alimentos
-- ✅ Gerar receita incremental para estabelecimentos
-- ✅ Oferecer opções acessíveis para consumidores
-- ✅ Promover sustentabilidade e consumo consciente
+- Reduzir desperdício de alimentos
+- Gerar receita incremental para estabelecimentos
+- Oferecer opções acessíveis para consumidores
+- Promover sustentabilidade e consumo consciente
 
 ---
 
-## 🏗️ Arquitetura do Protótipo
+## Arquitetura do Protótipo
 
 ```
 pega-ai-prototipo/
@@ -39,40 +39,14 @@ pega-ai-prototipo/
 
 ---
 
-## 🚀 Como Executar
+## Como Executar
 
-### **Opção 1: Google Colab (Mais Rápido)**
-
-1. Acesse: [Google Colab](https://colab.research.google.com/)
-
-2. Crie um novo notebook e execute:
-
-```python
-# Instalar dependências
-!pip install streamlit faker plotly scipy pandas -q
-
-# Clonar repositório
-!git clone https://github.com/SEU-USUARIO/pega-ai-prototipo.git
-%cd pega-ai-prototipo
-
-# Inicializar banco e popular dados
-!python database.py
-!python popular_dados.py
-
-# Executar interface principal
-!streamlit run streamlit_app.py &
-
-# Instalar ngrok para acesso externo
-!npm install -g localtunnel
-!lt --port 8501
-```
-
-### **Opção 2: Local (Desenvolvimento)**
+### **Opção 1: Rodar localmente**
 
 ```bash
 # 1. Clonar repositório
-git clone https://github.com/SEU-USUARIO/pega-ai-prototipo.git
-cd pega-ai-prototipo
+git clone https://github.com/arthurezende/pega_ai
+cd pega_ai
 
 # 2. Criar ambiente virtual
 python -m venv venv
@@ -90,7 +64,7 @@ python popular_dados.py
 streamlit run streamlit_app.py
 ```
 
-### **Opção 3: Streamlit Cloud (Deploy Online)**
+### **Opção 2: Streamlit Cloud (Deploy Online)**
 
 1. Suba o código para GitHub
 2. Acesse [Streamlit Cloud](https://streamlit.io/cloud)
@@ -99,42 +73,42 @@ streamlit run streamlit_app.py
 
 ---
 
-## 📊 Funcionalidades Implementadas
+## Funcionalidades Implementadas
 
 ### **Fluxo Consumidor**
 
-- ✅ Cadastro e login simplificado
-- ✅ Visualização de ofertas com filtros (categoria, preço)
-- ✅ Detalhes da oferta (desconto, horário, estoque)
-- ✅ Reserva de caixa surpresa
-- ✅ Geração de código de retirada (simulação de QR Code)
-- ✅ Histórico de pedidos
+- Cadastro e login simplificado
+- Visualização de ofertas com filtros (categoria, preço)
+- Detalhes da oferta (desconto, horário, estoque)
+- Reserva de caixa surpresa
+- Geração de código de retirada (simulação de QR Code)
+- Histórico de pedidos
 
 ### **Fluxo Estabelecimento**
 
-- ✅ Cadastro e login
-- ✅ Criação de ofertas (título, preço, estoque, horário)
-- ✅ Dashboard com métricas (pedidos, receita)
-- ✅ Listagem de pedidos recebidos
-- ✅ Validação de código de retirada
+- Cadastro e login
+- Criação de ofertas (título, preço, estoque, horário)
+- Dashboard com métricas (pedidos, receita)
+- Listagem de pedidos recebidos
+- Validação de código de retirada
 
 ### **Analytics (Dashboard Estatístico)**
 
-- ✅ KPIs principais (ofertas, pedidos, receita, economia)
-- ✅ Análises descritivas:
+- KPIs principais (ofertas, pedidos, receita, economia)
+- Análises descritivas:
   - Distribuição de pedidos por status
   - Ofertas por categoria
   - Ticket médio e desvio padrão
   - Análise de descontos
   - Evolução temporal
-- ✅ Análises inferenciais:
+- Análises inferenciais:
   - Correlação de Pearson (preço vs vendas)
   - Teste ANOVA (categorias vs taxa de venda)
   - Intervalos de confiança
 
 ---
 
-## 🗄️ Estrutura do Banco de Dados
+## Estrutura do Banco de Dados
 
 ### **Entidades Principais**
 
@@ -186,7 +160,7 @@ avaliacoes
 
 ---
 
-## 📈 Dados Populados
+## Dados Populados
 
 O script `popular_dados.py` cria:
 
@@ -210,7 +184,7 @@ Senha: senha123
 
 ---
 
-## 📊 Análises Estatísticas Implementadas
+## Análises Estatísticas Implementadas
 
 ### **Análises Descritivas**
 
@@ -231,30 +205,30 @@ Senha: senha123
 
 ---
 
-## 🎓 Entregáveis do Projeto
+## Entregáveis do Projeto
 
-### **a) Protótipo Funcional** ✅
+### **a) Protótipo Funcional**
 - Interface Streamlit com fluxos de compra/retirada
 - Simulação de QR Code (código alfanumérico)
 - CRUD completo de ofertas e pedidos
 
-### **b) Scripts de População** ✅
+### **b) Scripts de População**
 - `database.py`: Criação do schema
 - `popular_dados.py`: Inserção de dados realistas
 
-### **c) Análises Estatísticas** ✅
+### **c) Análises Estatísticas**
 - Dashboard completo em `analytics.py`
 - Descritivas: KPIs, distribuições, tendências
 - Inferenciais: correlações, testes de hipótese
 
-### **d) Visualizações** ✅
+### **d) Visualizações**
 - Gráficos interativos com Plotly
 - Dashboards responsivos
 - Filtros dinâmicos
 
 ---
 
-## 🔬 Metodologia de Análise
+## Metodologia de Análise
 
 ### **Correlação de Pearson**
 
@@ -281,15 +255,15 @@ f_stat, p_value = stats.f_oneway(grupo1, grupo2, grupo3)
 
 ---
 
-## 🚧 Limitações e Melhorias Futuras
+## Limitações e Melhorias Futuras
 
 ### **Limitações do Protótipo**
 
-- ❌ Sem autenticação real (senhas em hash, mas sem JWT)
-- ❌ Sem gateway de pagamento (simulado)
-- ❌ Sem geolocalização real (coordenadas fixas)
-- ❌ Sem notificações push
-- ❌ QR Code simulado (texto), não gráfico
+-  Sem autenticação real (senhas em hash, mas sem JWT)
+-  Sem gateway de pagamento (simulado)
+-  Sem geolocalização real (coordenadas fixas)
+-  Sem notificações push
+-  QR Code simulado (texto), não gráfico
 
 ### **Próximos Passos (MVP Real)**
 
@@ -302,7 +276,7 @@ f_stat, p_value = stats.f_oneway(grupo1, grupo2, grupo3)
 
 ---
 
-## 👥 Equipe
+## Equipe
 
 - **Arthur Despíndola Rezende** - RA: 2024022394
 - **Marcos Rogério Vieira de Araújo Filho** - RA: 2024022429
@@ -314,7 +288,7 @@ f_stat, p_value = stats.f_oneway(grupo1, grupo2, grupo3)
 
 ---
 
-## 📚 Referências
+## Referências
 
 1. **Fowler, M.** (2002). *Patterns of Enterprise Application Architecture*. Addison-Wesley.
 2. **Kleppmann, M.** (2017). *Designing Data-Intensive Applications*. O'Reilly Media.
@@ -324,16 +298,14 @@ f_stat, p_value = stats.f_oneway(grupo1, grupo2, grupo3)
 
 ---
 
-## 📜 Licença
+## Licença
 
 Este é um projeto acadêmico desenvolvido para fins educacionais.
 
 ---
 
-## 🎉 Agradecimentos
+## Agradecimentos
 
 Agradecemos à Faculdade Exame pelo suporte e orientação durante o desenvolvimento deste projeto integrado.
 
 ---
-
-**Desenvolvido com ❤️ e ☕ pela equipe Pega Aí**
