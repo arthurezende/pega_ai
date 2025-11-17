@@ -251,7 +251,13 @@ def tela_descobrir_ofertas():
                 st.markdown(f"## 💚 R$ {oferta['preco_venda']:.2f}")
                 st.success(f"**{desconto}% OFF**")
                 
-                if st.button("➕ Reservar", key=f"reservar_{oferta['id']}", use_container_width=True):
+                # Prevenir múltiplas reservas com session_state
+                if f"reservando_{oferta['id']}" not in st.session_state:
+                    st.session_state[f"reservando_{oferta['id']}"] = False
+                
+                if st.button("➕ Reservar", key=f"reservar_{oferta['id']}", use_container_width=True, disabled=st.session_state[f"reservando_{oferta['id']}"]):
+                    st.session_state[f"reservando_{oferta['id']}"] = True
+                    
                     pedido = db.criar_pedido(
                         consumidor_id=st.session_state.user['id'],
                         oferta_id=oferta['id'],
@@ -262,9 +268,11 @@ def tela_descobrir_ofertas():
                         st.success(f"✅ Reserva confirmada!")
                         st.info(f"**Código de retirada:** `{pedido['codigo_retirada']}`")
                         st.balloons()
+                        st.session_state[f"reservando_{oferta['id']}"] = False
                         st.rerun()
                     else:
                         st.error("❌ Oferta esgotada ou erro na reserva")
+                        st.session_state[f"reservando_{oferta['id']}"] = False
             
             st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("---")
@@ -307,6 +315,17 @@ def tela_meus_pedidos():
                     st.markdown("### 📱 QR Code")
                     st.code(pedido['codigo'], language=None)
                     st.caption("Apresente este código no estabelecimento")
+                    
+                    # Botão de cancelamento
+                    if st.button("🗑️ Cancelar Pedido", key=f"cancelar_{pedido['id']}", type="secondary"):
+                        resultado = db.cancelar_pedido(pedido['id'])
+                        if resultado['sucesso']:
+                            st.success(resultado['mensagem'])
+                            if resultado.get('pagamento_estornado'):
+                                st.info("💰 Pagamento estornado com sucesso")
+                            st.rerun()
+                        else:
+                            st.error(resultado['mensagem'])
 
 def tela_como_funciona():
     st.title("❓ Como Funciona o Pega Aí")

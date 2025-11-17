@@ -82,6 +82,20 @@ class Database:
             )
         ''')
         
+        # Tabela de pagamentos
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS pagamentos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pedido_id INTEGER UNIQUE NOT NULL,
+                metodo TEXT CHECK(metodo IN ('pix', 'cartao', 'na_retirada')) NOT NULL,
+                status TEXT DEFAULT 'pendente' CHECK(status IN ('pendente', 'aprovado', 'recusado', 'estornado')),
+                gateway_id TEXT,
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE
+            )
+        ''')
+        
         # Tabela de avaliações
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS avaliacoes (
@@ -213,40 +227,83 @@ class Database:
         ]
     
     def criar_pedido(self, consumidor_id, oferta_id, quantidade=1):
-        """Cria um pedido e atualiza estoque"""
+        """Cria um pedido, atualiza estoque e registra pagamento (RF09 + RF10)"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Buscar preço e verificar estoque
-        cursor.execute('SELECT preco_venda, estoque_atual FROM ofertas WHERE id = ?', (oferta_id,))
-        oferta = cursor.fetchone()
-        
-        if not oferta or oferta[1] < quantidade:
+        try:
+            # 1. Buscar preço e verificar estoque
+            cursor.execute('SELECT preco_venda, estoque_atual FROM ofertas WHERE id = ?', (oferta_id,))
+            oferta = cursor.fetchone()
+            
+            if not oferta:
+                conn.close()
+                return None
+            
+            preco_unitario, estoque_disponivel = oferta
+            
+            # 2. Validar estoque
+            if estoque_disponivel < quantidade:
+                conn.close()
+                return None
+            
+            # 3. Calcular valor total
+            valor_total = preco_unitario * quantidade
+            
+            # 4. Gerar código único de retirada
+            codigo_retirada = hashlib.md5(
+                f"{consumidor_id}{oferta_id}{datetime.now()}{quantidade}".encode()
+            ).hexdigest()[:8].upper()
+            
+            # 5. Criar pedido (status inicial: reservado)
+            cursor.execute('''
+                INSERT INTO pedidos (consumidor_id, oferta_id, quantidade, valor_total, codigo_retirada, status)
+                VALUES (?, ?, ?, ?, ?, 'reservado')
+            ''', (consumidor_id, oferta_id, quantidade, valor_total, codigo_retirada))
+            
+            pedido_id = cursor.lastrowid
+            
+            # 6. Criar pagamento (simulado como aprovado para demo)
+            cursor.execute('''
+                INSERT INTO pagamentos (pedido_id, metodo, status, gateway_id)
+                VALUES (?, 'pix', 'aprovado', ?)
+            ''', (pedido_id, f"SIM_{codigo_retirada}"))
+            
+            # 7. Atualizar status do pedido para "pago"
+            cursor.execute('''
+                UPDATE pedidos 
+                SET status = 'pago'
+                WHERE id = ?
+            ''', (pedido_id,))
+            
+            # 8. Decrementar estoque (RNF07 - Confiabilidade)
+            cursor.execute('''
+                UPDATE ofertas 
+                SET estoque_atual = estoque_atual - ?
+                WHERE id = ? AND estoque_atual >= ?
+            ''', (quantidade, oferta_id, quantidade))
+            
+            # 9. Verificar se o estoque foi realmente decrementado
+            if cursor.rowcount == 0:
+                conn.rollback()
+                conn.close()
+                return None
+            
+            conn.commit()
             conn.close()
+            
+            return {
+                'id': pedido_id,
+                'codigo_retirada': codigo_retirada,
+                'valor_total': valor_total,
+                'quantidade': quantidade
+            }
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            print(f"Erro ao criar pedido: {e}")
             return None
-        
-        valor_total = oferta[0] * quantidade
-        codigo_retirada = hashlib.md5(f"{consumidor_id}{oferta_id}{datetime.now()}".encode()).hexdigest()[:8].upper()
-        
-        # Criar pedido
-        cursor.execute('''
-            INSERT INTO pedidos (consumidor_id, oferta_id, quantidade, valor_total, codigo_retirada)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (consumidor_id, oferta_id, quantidade, valor_total, codigo_retirada))
-        
-        pedido_id = cursor.lastrowid
-        
-        # Atualizar estoque
-        cursor.execute('''
-            UPDATE ofertas 
-            SET estoque_atual = estoque_atual - ?
-            WHERE id = ?
-        ''', (quantidade, oferta_id))
-        
-        conn.commit()
-        conn.close()
-        
-        return {'id': pedido_id, 'codigo_retirada': codigo_retirada, 'valor_total': valor_total}
     
     def validar_retirada(self, codigo_retirada):
         """Valida código de retirada e marca como retirado"""
@@ -358,3 +415,70 @@ class Database:
             }
             for p in pedidos
         ]
+    
+    def cancelar_pedido(self, pedido_id, motivo='Cancelado pelo estabelecimento'):
+        """Cancela um pedido e devolve estoque (RF - Cancelamento/Devolução)"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # Buscar dados do pedido
+        cursor.execute('''
+            SELECT p.id, p.status, p.oferta_id, p.quantidade, pag.id as pagamento_id
+            FROM pedidos p
+            LEFT JOIN pagamentos pag ON p.id = pag.pedido_id
+            WHERE p.id = ?
+        ''', (pedido_id,))
+        
+        pedido = cursor.fetchone()
+        
+        if not pedido:
+            conn.close()
+            return {'sucesso': False, 'mensagem': 'Pedido não encontrado'}
+        
+        status_atual = pedido[1]
+        oferta_id = pedido[2]
+        quantidade = pedido[3]
+        pagamento_id = pedido[4]
+        
+        # Só pode cancelar se for Reservado ou Pago
+        if status_atual not in ['reservado', 'pago']:
+            conn.close()
+            return {'sucesso': False, 'mensagem': f'Pedido já está {status_atual}'}
+        
+        try:
+            # 1. Atualizar status do pedido
+            cursor.execute('''
+                UPDATE pedidos 
+                SET status = 'cancelado'
+                WHERE id = ?
+            ''', (pedido_id,))
+            
+            # 2. Devolver estoque
+            cursor.execute('''
+                UPDATE ofertas 
+                SET estoque_atual = estoque_atual + ?
+                WHERE id = ?
+            ''', (quantidade, oferta_id))
+            
+            # 3. Estornar pagamento (se existir)
+            if pagamento_id and status_atual == 'pago':
+                cursor.execute('''
+                    UPDATE pagamentos 
+                    SET status = 'estornado'
+                    WHERE id = ?
+                ''', (pagamento_id,))
+            
+            conn.commit()
+            conn.close()
+            
+            return {
+                'sucesso': True,
+                'mensagem': 'Pedido cancelado com sucesso',
+                'estoque_devolvido': quantidade,
+                'pagamento_estornado': bool(pagamento_id and status_atual == 'pago')
+            }
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return {'sucesso': False, 'mensagem': f'Erro ao cancelar: {str(e)}'}
