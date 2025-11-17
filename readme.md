@@ -155,6 +155,14 @@ pedidos
 ├── status (reservado | pago | retirado | cancelado)
 └── criado_em
 
+pagamentos
+├── id (PK)
+├── pedido_id (FK → pedidos, UNIQUE)
+├── metodo (pix | cartao | na_retirada)
+├── status (pendente | aprovado | recusado | estornado)
+├── gateway_id
+└── criado_em
+
 avaliacoes
 ├── id (PK)
 ├── pedido_id (FK → pedidos)
@@ -194,7 +202,7 @@ Senha: senha123
 
 1. **Medidas de Tendência Central**: Média, mediana, moda
 2. **Medidas de Dispersão**: Desvio padrão, variância, amplitude
-3. **Distribuições**: Histogramas, box plots, gráficos de pizza
+3. **Distribuições**: Histogramas, box plots, gráficos
 4. **Séries Temporais**: Evolução de pedidos ao longo do tempo
 
 ### **Análises Inferenciais**
