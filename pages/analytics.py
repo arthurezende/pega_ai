@@ -5,12 +5,11 @@ import plotly.express as px
 import sqlite3
 import scipy.stats as stats
 
-# -----------------------------
+# ------------------------------
 # Conexão com o banco
-# -----------------------------
+# ------------------------------
 def get_connection():
     return sqlite3.connect("pega_ai.db", check_same_thread=False)
-
 
 # -----------------------------
 # Página principal
