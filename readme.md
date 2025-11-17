@@ -1,6 +1,6 @@
-# 🍕 Pega Aí - Protótipo Funcional
+# Pega Aí (Protótipo Funcional)
 
-## 📖 Sobre o Projeto
+## Sobre o Projeto
 
 **Pega Aí** é uma plataforma que conecta estabelecimentos comerciais com excedente de produção diária a consumidores interessados em adquirir alimentos de qualidade por preços reduzidos, combatendo o desperdício e promovendo consumo consciente.
 
@@ -27,7 +27,7 @@ pega-ai-prototipo/
 └── pega_ai.db          # Banco de dados SQLite (gerado automaticamente)
 ```
 
-### 🔧 Tecnologias Utilizadas
+### Tecnologias Utilizadas
 
 | Componente | Tecnologia | Justificativa |
 |------------|------------|---------------|
@@ -40,6 +40,8 @@ pega-ai-prototipo/
 ---
 
 ## Como Executar
+
+Teste a versão publicada no Streamlit: https://pega-ai-prototipo.streamlit.app/ 
 
 ### **Opção 1: Rodar localmente**
 
