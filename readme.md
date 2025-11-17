@@ -41,7 +41,9 @@ pega-ai-prototipo/
 
 ## Como Executar
 
-Teste a versão publicada no Streamlit: https://pega-ai-prototipo.streamlit.app/ 
+Versão publicada no Render (free): https://pega-ai.onrender.com
+
+Teste a versão publicada no Streamlit Cloud: https://pega-ai-prototipo.streamlit.app/ 
 
 ### **Opção 1: Rodar localmente**
 
