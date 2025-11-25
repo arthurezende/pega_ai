@@ -1,17 +1,19 @@
 import sqlite3
 from datetime import datetime
 import hashlib
+import secrets
+from typing import Optional, Dict, Any, List, Union
 
 class Database:
-    def __init__(self, db_name='pega_ai.db'):
+    def __init__(self, db_name: str = 'pega_ai.db'):
         self.db_name = db_name
         self.init_database()
     
-    def get_connection(self):
+    def get_connection(self) -> sqlite3.Connection:
         """Cria conexão com o banco"""
         return sqlite3.connect(self.db_name, check_same_thread=False)
     
-    def init_database(self):
+    def init_database(self) -> None:
         """Cria estrutura do banco de dados"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -108,15 +110,24 @@ class Database:
             )
         ''')
         
+        # Índices de Performance
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_ofertas_estabelecimento ON ofertas(estabelecimento_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_pedidos_consumidor ON pedidos(consumidor_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_pedidos_oferta ON pedidos(oferta_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_pedidos_status ON pedidos(status)')
+
         conn.commit()
         conn.close()
         print("✅ Banco de dados inicializado com sucesso!")
     
-    def hash_senha(self, senha):
-        """Gera hash SHA256 da senha"""
-        return hashlib.sha256(senha.encode()).hexdigest()
+    def hash_senha(self, senha: str, salt: Optional[str] = None) -> str:
+        """Gera hash SHA256 da senha com salt."""
+        if salt is None:
+            salt = secrets.token_hex(16)
+        hash_obj = hashlib.sha256((salt + senha).encode()).hexdigest()
+        return f"{salt}${hash_obj}"
     
-    def criar_usuario(self, nome, email, senha, tipo, telefone=None):
+    def criar_usuario(self, nome: str, email: str, senha: str, tipo: str, telefone: Optional[str] = None) -> Optional[int]:
         """Cria um novo usuário"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -135,30 +146,49 @@ class Database:
         finally:
             conn.close()
     
-    def autenticar_usuario(self, email, senha):
+    def autenticar_usuario(self, email: str, senha: str) -> Optional[Dict[str, Any]]:
         """Autentica usuário e retorna seus dados"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, nome, email, tipo
+            SELECT id, nome, email, senha, tipo
             FROM usuarios
-            WHERE email = ? AND senha = ?
-        ''', (email, self.hash_senha(senha)))
+            WHERE email = ?
+        ''', (email,))
         
         user = cursor.fetchone()
         conn.close()
         
         if user:
-            return {
-                'id': user[0],
-                'nome': user[1],
-                'email': user[2],
-                'tipo': user[3]
-            }
+            stored_hash = user[3]
+
+            # Verificar se é hash legado (sem salt/delimitador $)
+            if '$' not in stored_hash:
+                if hashlib.sha256(senha.encode()).hexdigest() == stored_hash:
+                    # Opcional: Atualizar senha para novo formato
+                    return {
+                        'id': user[0],
+                        'nome': user[1],
+                        'email': user[2],
+                        'tipo': user[4]
+                    }
+            else:
+                try:
+                    salt = stored_hash.split('$')[0]
+                    if self.hash_senha(senha, salt) == stored_hash:
+                        return {
+                            'id': user[0],
+                            'nome': user[1],
+                            'email': user[2],
+                            'tipo': user[4]
+                        }
+                except (ValueError, IndexError):
+                    pass
+
         return None
     
-    def criar_estabelecimento(self, usuario_id, nome_fantasia, cnpj, endereco, latitude, longitude):
+    def criar_estabelecimento(self, usuario_id: int, nome_fantasia: str, cnpj: str, endereco: str, latitude: float, longitude: float) -> Optional[int]:
         """Cria perfil de estabelecimento"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -177,8 +207,8 @@ class Database:
         finally:
             conn.close()
     
-    def criar_oferta(self, estabelecimento_id, titulo, descricao, categoria, preco_original, 
-                     preco_venda, estoque, horario_inicio, horario_fim):
+    def criar_oferta(self, estabelecimento_id: int, titulo: str, descricao: str, categoria: str, preco_original: float,
+                     preco_venda: float, estoque: int, horario_inicio: str, horario_fim: str) -> int:
         """Cria uma nova oferta"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -197,7 +227,7 @@ class Database:
         
         return oferta_id
     
-    def listar_ofertas_ativas(self):
+    def listar_ofertas_ativas(self) -> List[Dict[str, Any]]:
         """Lista todas ofertas ativas com estoque"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -226,7 +256,7 @@ class Database:
             for o in ofertas
         ]
     
-    def criar_pedido(self, consumidor_id, oferta_id, quantidade=1):
+    def criar_pedido(self, consumidor_id: int, oferta_id: int, quantidade: int = 1) -> Optional[Dict[str, Any]]:
         """Cria um pedido, atualiza estoque e registra pagamento (RF09 + RF10)"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -305,7 +335,7 @@ class Database:
             print(f"Erro ao criar pedido: {e}")
             return None
     
-    def validar_retirada(self, codigo_retirada):
+    def validar_retirada(self, codigo_retirada: str) -> Dict[str, Any]:
         """Valida código de retirada e marca como retirado"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -351,7 +381,7 @@ class Database:
             }
         }
     
-    def listar_pedidos_consumidor(self, consumidor_id):
+    def listar_pedidos_consumidor(self, consumidor_id: int) -> List[Dict[str, Any]]:
         """Lista pedidos de um consumidor"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -379,7 +409,7 @@ class Database:
             for p in pedidos
         ]
     
-    def get_estabelecimento_id(self, usuario_id):
+    def get_estabelecimento_id(self, usuario_id: int) -> Optional[int]:
         """Retorna ID do estabelecimento pelo usuário"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -390,7 +420,7 @@ class Database:
         
         return result[0] if result else None
     
-    def listar_pedidos_estabelecimento(self, estabelecimento_id):
+    def listar_pedidos_estabelecimento(self, estabelecimento_id: int) -> List[Dict[str, Any]]:
         """Lista pedidos de um estabelecimento"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -416,7 +446,7 @@ class Database:
             for p in pedidos
         ]
     
-    def cancelar_pedido(self, pedido_id, motivo='Cancelado pelo estabelecimento'):
+    def cancelar_pedido(self, pedido_id: int, motivo: str = 'Cancelado pelo estabelecimento') -> Dict[str, Any]:
         """Cancela um pedido e devolve estoque (RF - Cancelamento/Devolução)"""
         conn = self.get_connection()
         cursor = conn.cursor()
